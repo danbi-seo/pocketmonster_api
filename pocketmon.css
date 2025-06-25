@@ -1,0 +1,331 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    
+}
+
+html, body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: whitesmoke;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 1000px;
+    height: 800px;
+    margin: auto;
+    padding: 5px;
+    background-color: #D7D3CF;
+    border: 3px solid rgb(92, 92, 92);
+}
+.content {
+    display: flex;
+    width: 100%;
+    flex-grow: 1;
+    flex-direction: column;
+    background-color: white;
+}
+
+.header {
+    display: flex;
+    width: 100%; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.top {
+    display: flex;
+    height: 40px;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    background: linear-gradient(to right, #0B256E, #A9CBF7);
+    box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.3);
+}
+
+.logo {
+    width: 32px;
+    height: 32px;
+    margin-left: 5px;
+}
+
+.menu {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    height: 30px;
+    gap: 14px;
+    padding-left: 10px;
+    background-color: #D7D3CF;
+    font-family: monospace, 'Courier New', Courier, sans-serif;
+    font-size: 20px;
+}
+
+.display {
+    display: flex;
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.header-left {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 5px;
+}
+.header-left > p {
+    display: flex;
+    justify-content: center;
+    font-family: 'Press Start 2P', cursive;
+    color: whitesmoke;
+
+}
+
+.header-right {
+    display: flex;
+    gap: 6px;
+    margin-right: 6px;
+}
+
+
+.control-btn{
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 800;
+    line-height: 1;
+
+    background-color: #D7D3CF;
+    border: none;
+    box-shadow: 1px 1px 0px #c0c0c0, -1px -1px 0px #f0f0f0, inset 1px 1px 1px rgba(137, 137, 137, 0.2); 
+}
+
+#min.control-btn {
+    font-size: 28px;
+    padding-bottom: 5px;
+}
+
+#max {
+    font-size: 28px;
+    font-weight: 500;
+}
+
+#close {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+
+/*  시작 페이지 */
+.first-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin: 20px auto;
+    gap: 30px;
+}
+.title {
+    display: flex;
+    margin-top: 30px;
+    text-align: center;
+    font-size: 40px;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.img1 {
+    width: 160px;
+    margin-top: 20px;
+    height: auto;
+}
+
+.first-chat {
+    display: flex;  
+    position: relative;
+    justify-content: center;
+    align-items: center;
+}
+.chat{
+    text-align: center;
+    font-size: 30px;
+    font-family: 'Do Hyeon', sans-serif;
+    margin-top: 22px;
+}
+
+.chat-img {
+    display: flex;
+    position: absolute;
+    width: 900px;
+    margin-top: 30px;
+    z-index: 1;
+}
+.toptext {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 2;
+}
+.start-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 30px;
+    padding: 10px 100px;
+    cursor: pointer;
+    z-index: 2
+}
+
+.hidden {
+    display: none;
+}
+
+
+/*  두번째 페이지 */
+.second-display {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+}
+
+.chat-wrap {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    height: 600px;
+    margin-top: 50px;
+    top: 0%; 
+    left: 0%; 
+}
+
+.chat-img2 {
+    display: flex;
+    position: absolute;
+    width: 900px;
+    z-index: 1;
+    margin-top: 50px;
+}
+
+/* chat-img2 일때
+    .chat-answer{
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 2;
+    top: 72%;
+    left: -25%; 
+    width: 100%;
+    gap: 15px;
+} */
+
+.chat-answer{
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: flex-end;
+    flex-direction: column;
+    z-index: 2;
+    top: 18%;
+    left: -10%; 
+    width: 100%;
+    gap: 15px;
+}
+
+
+
+.reroll, .evolution {
+    all: unset;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    font-family: 'Do Hyeon', sans-serif;
+    cursor: pointer;
+    background-color: none;
+    outline: none;
+}
+
+.info {
+    display: flex;
+    justify-content: left;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    font-size: 20px;
+    font-family: 'Press Start 2P', cursive;
+}
+
+
+.monster-main{
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-direction: row;
+    /* border: 2px solid red; */
+    width: 560px;
+    height: 250px;
+    margin: 50px 0 0 70px;
+    font-size: 30px;
+    font-family: 'Do Hyeon', sans-serif;
+}
+
+.monster-sub {
+    display: flex;
+    justify-content: left;
+    align-items: flex-start;
+    flex-direction: row;
+    font-size: 30px;
+    font-family: 'Do Hyeon', sans-serif;
+    margin: 30px;
+    margin-left: 100px;
+    gap: 120px;
+}
+
+.monster-text { 
+    font-size: 25px;
+    color: #383838;
+    word-break: keep-all;
+    margin-right: 10px;
+}
+
+.focus {
+    visibility: hidden; /* 공간 차지하면서 요소만 숨기기 */
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.chat-answer button:hover .focus {
+    visibility: visible;
+    opacity: 1;
+}
+
+.monster-stats .stat-item {
+    white-space: nowrap;
+    margin: 10px;
+}
