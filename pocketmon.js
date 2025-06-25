@@ -151,18 +151,17 @@ async function randomPocketmon() {
         // 8. 포켓몬 설명
         if ($monsterText) {
             let flavorText = '도감 설명 없음.';
-
             const koreanFlavorText = speciesData.flavor_text_entries ?
                 speciesData.flavor_text_entries.find(entry => entry.language.name === 'ko') : null;
 
             if (koreanFlavorText && koreanFlavorText.flavor_text) {
                 flavorText = koreanFlavorText.flavor_text.replace(/[\n\f]/g, ' ');
+                flavorText = lineChange(flavorText, 25);
             }
-            $monsterText.textContent = flavorText;
+            $monsterText.innerHTML = flavorText;
         }
     } catch (error) {
-        console.error("포켓몬 정보를 가져오다가 큰 오류가 발생했어요:", error); 
-        // resetUI('정보 로딩에 실패했습니다. 다시 시도해주세요.'); 
+        console.error("포켓몬 정보를 가져오다가 큰 오류가 발생했어요:", error);
     }
 }
 
@@ -185,25 +184,21 @@ if (rerollButton) {
     })
 }
 
-
-// 포켓몬 텍스트 줄바꿈
-function lineChange(text, charsPerLine) {
+// 줄바꿈
+const lineChange = (text, charsPerLine) => {
     let result = '';
-    let currentLine = 0; 
+    let currentLineLength = 0;
 
     for (let i = 0; i < text.length; i++) {
         result += text[i];
+        currentLineLength++;
 
-        currentLineLength++; 
-
-        // 만약 현재 줄의 글자 수가 도달했다면
         if (currentLineLength >= charsPerLine) {
-            if (i < text.length - 1) {
+            if (i < text.length - 1) { 
                 result += '<br>';
-                currentLineLength = 0;
+                currentLineLength = 0; 
             }
         }
     }
     return result; 
-}
-
+};
