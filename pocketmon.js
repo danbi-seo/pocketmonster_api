@@ -68,7 +68,7 @@ async function randomPocketmon() {
         const speciesData = await speciesResponse.json();
 
 
-        // --- 이제 가져온 정보로 화면을 업데이트합니다! ---
+        // --- 이제 가져온 정보로 화면을 업데이트! ---
 
         // 1.포켓몬 번호
         if ($monsterNumber) { 
@@ -181,7 +181,7 @@ if (startButton) {
 // reroll 버튼 이벤트
 if (rerollButton) {
     rerollButton.addEventListener('click', () =>{
-        location.reload();
+        randomPocketmon();
     })
 }
 
@@ -196,7 +196,7 @@ function lineChange(text, charsPerLine) {
 
         currentLineLength++; 
 
-        // 만약 현재 줄의 글자 수가 정해둔 'charsPerLine'에 도달했다면
+        // 만약 현재 줄의 글자 수가 도달했다면
         if (currentLineLength >= charsPerLine) {
             if (i < text.length - 1) {
                 result += '<br>';
