@@ -314,6 +314,10 @@ html, body {
     margin-right: 10px;
 }
 
+.monster-img {
+    width: 200px;
+}
+
 .focus {
     visibility: hidden; /* 공간 차지하면서 요소만 숨기기 */
     opacity: 0;
