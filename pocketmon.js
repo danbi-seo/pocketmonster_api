@@ -13,6 +13,7 @@ const $monsterStats = document.querySelector('.monster-stats');
 const $monsterHeight = document.querySelector('.monster-height');   
 const $monsterWeight = document.querySelector('.monster-weight');   
 const $monsterText = document.querySelector('.monster-text');
+const $monsterSkill = document.querySelector('.monster-skill');
 
 
 const typeTranslations = {
@@ -132,7 +133,6 @@ async function randomPocketmon() {
         if ($monsterStats) { 
             $monsterStats.innerHTML = ''; 
             if (pokemonData.stats && pokemonData.stats.length > 0) {
-                // 배열로 순회하면서 스탯을 p태그에 추가함 
                 pokemonData.stats.forEach(statInfo => {
                     const statP = document.createElement('div');
                     statP.classList.add('stat-item');
@@ -147,8 +147,55 @@ async function randomPocketmon() {
                 $monsterStats.innerHTML = '<p>스탯 정보 없음</p>';
             }
         }
+        
+        // 8. 포켓몬 기술
+        if ($monsterSkill) {
+            $monsterSkill.innerHTML = ''; 
 
-        // 8. 포켓몬 설명
+            if (pokemonData.abilities && pokemonData.abilities.length > 0) {
+                const abilityPromises = pokemonData.abilities.map(async abilityInfo => {
+                    const abilityUrl = abilityInfo.ability.url;
+
+                    try {
+                        const response = await fetch(abilityUrl);
+                        if (!response.ok) {
+                            throw new Error(`기술 데이터 로딩 실패! (상태 코드: ${response.status}, URL: ${abilityUrl})`);
+                        }
+                        const abilityData = await response.json();
+
+                        let displayAbilityName = '';
+                        const koreanAbilityName = abilityData.names ?
+                            abilityData.names.find(name => name.language.name === 'ko') : null;
+
+                        if (koreanAbilityName && koreanAbilityName.name) {
+                            displayAbilityName = koreanAbilityName.name;
+                        } else {
+                            displayAbilityName = abilityInfo.ability.name.replace(/-/g, ' ').toUpperCase();
+                        }
+                        return displayAbilityName; 
+                    } catch (error) {
+                        console.error("특성 상세 정보를 가져오다가 오류 발생:", error);
+                        return { name: abilityInfo.ability.name.replace(/-/g, ' ').toUpperCase() + ' (로딩 오류)', success: false };
+                    }
+                });
+
+                Promise.all(abilityPromises)
+                    .then(results => {
+                        const abilitiesText = results.join(' / ');
+                        $monsterSkill.textContent = `기술 : ${abilitiesText}`;
+                    })
+                    .catch(error => {
+                        console.error("기술 정보 오류 발생:", error);
+                    });
+            } else {
+                $monsterSkill.textContent = `기술 없음`;
+            }
+        }
+
+        
+
+
+        // 9. 포켓몬 설명
         if ($monsterText) {
             let flavorText = '도감 설명 없음.';
             const koreanFlavorText = speciesData.flavor_text_entries ?
