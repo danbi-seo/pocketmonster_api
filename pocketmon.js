@@ -3,8 +3,11 @@ const apiPocketmonSpecies = 'https://pokeapi.co/api/v2/pokemon-species/';
 
 const startPage = document.querySelector('.first-display');
 const secondPage = document.querySelector('.second-display');
+
 const startButton = document.querySelector('.start-btn');
+const evolutionButton = document.querySelector('.evolution');
 const rerollButton = document.querySelector('.reroll');
+
 const $monsterName = document.querySelector('.monster-name');
 const $monsterImg = document.querySelector('.monster-img');
 const $monsterNumber = document.querySelector('.monster-number');
@@ -69,7 +72,7 @@ async function randomPocketmon() {
         const speciesData = await speciesResponse.json();
 
 
-        // --- 이제 가져온 정보로 화면을 업데이트! ---
+        // --- 가져온 정보를 화면에 보여주기 ---
 
         // 1.포켓몬 번호
         if ($monsterNumber) { 
@@ -193,8 +196,6 @@ async function randomPocketmon() {
         }
 
         
-
-
         // 9. 포켓몬 설명
         if ($monsterText) {
             let flavorText = '도감 설명 없음.';
@@ -231,6 +232,20 @@ if (rerollButton) {
     })
 }
 
+// 진화하기 버튼 이벤트
+if (evolutionButton) {
+    evolutionButton.addEventListener('click', async() => {
+        const pokemonIdText = $monsterNumber.textContent.replace('#','');
+        const pokemonId = parseInt(pokemonIdText, 10);
+
+        if (isNaN(pokemonId)) {
+            return;
+        }
+        await displayEvolutions(pokemonId);
+    })
+}
+
+
 // 줄바꿈
 const lineChange = (text, charsPerLine) => {
     let result = '';
@@ -249,3 +264,213 @@ const lineChange = (text, charsPerLine) => {
     }
     return result; 
 };
+
+
+
+
+// 진화 정보 가져오기
+async function displayEvolutions(pokemonId) {
+    const $evolutionDisplay = $monsterSkill;
+    if (!$evolutionDisplay) {
+        return;
+    }
+    $evolutionDisplay.innerHTML = '로 딩 중...';
+
+    try {
+        // (1) 포켓몬 종류 데이터를 통해서 진화 체인 url을 가져오기
+        const speciesResponse = await fetch(`${apiPocketmonSpecies}${pokemonId}/`);
+        if (!speciesResponse.ok) {
+            throw new Error(`진화 중 데이터 로딩 실패! (상태 코드 : ${speciesResponse.status})`);
+        }
+        const speciesData = await speciesResponse.json();
+        
+        if(!speciesData.evolution_chain || !speciesData.evolution_chain.url) {
+            $evolutionDisplay.textContent = '다음 진화 없음';
+            return;
+        }
+
+        const evolutionChainUrl = speciesData.evolution_chain.url;
+        const evolutionChainResponse = await fetch(evolutionChainUrl);
+        if(!evolutionChainResponse.ok) {
+            throw new Error(`진화 중 데이터 로딩 실패!`);
+        }  
+        const evolutionChainData = await evolutionChainResponse.json();
+
+        // let currentChain = evolutionChainData.chain;
+        const currentPokemonSpeciesName = speciesData.name;
+
+        let allEvolutionStages = [];
+
+        // [3] 진화 체인 파싱, 다음 진화 찾기 -> 재귀함수
+        function colletNextEvolutionSpecies(chainNode) {
+            const nodeSpeciesName = chainNode.species.name;
+
+            if (nodeSpeciesName === currentPokemonSpeciesName) {
+                if (chainNode.evolves_to && chainNode.evolves_to.length > 0) {
+                    chainNode.evolves_to.forEach(nextEvolution => {
+                        nextEvolutionSpeciesUrls.push(nextEvolution.species.url);
+                    });
+                }
+                return true; 
+            }
+
+            if (chainNode.evolves_to) {
+                for (const nextNode of chainNode.evolves_to) {
+                    if (findNextEvolutions(nextNode)) {
+                        return true;
+                    }
+                }
+            }
+            return false; 
+        }
+
+        findNextEvolutions(evolutionChainData.chain);
+
+        if(currentPokemonNode && currentPokemonNode.evolves_to.length > 0) {
+            currentPokemonNode.evolves_to.forEach(nextEvoName => {
+                const nextEvoNode = allEvolutionStages.find(node => node.name === nextEvoName);
+                if (nextEvoNode) {
+                    nextEvolutionSpeciesUrls.push(nextEvoNode.url);
+                }
+            });
+        }
+                if (nextEvolutionSpeciesUrls.length > 0) {
+            const evolutionPromises = nextEvolutionSpeciesUrls.map(async (speciesUrl) => {
+                try {
+                    const res = await fetch(speciesUrl); // 종 상세 정보
+                    if (!res.ok) throw new Error(`다음 진화 종 데이터 로딩 실패!`);
+                    const evoSpeciesData = await res.json();
+
+                    // 한글 이름 찾기
+                    const koreanNameEntry = evoSpeciesData.names.find(name => name.language.name === 'ko');
+                    const evoName = koreanNameEntry ? koreanNameEntry.name : evoSpeciesData.name.toUpperCase();
+
+                    // 포켓몬 데이터 (이미지용)
+                    const evoId = speciesUrl.split('/').filter(Boolean).pop(); // URL에서 ID 추출
+                    const pokeRes = await fetch(`${apiPocketmon}${evoId}/`);
+                    if (!pokeRes.ok) throw new Error(`다음 진화 포켓몬 데이터 로딩 실패!`);
+                    const evoPokemonData = await pokeRes.json();
+                    const evoImageUrl = evoPokemonData.sprites ? evoPokemonData.sprites.front_default : null;
+
+                    return { name: evoName, imageUrl: evoImageUrl };
+                } catch (error) {
+                    console.error("다음 진화 포켓몬 정보 가져오기 오류:", error);
+                    // 오류 발생 시에도 기본 정보 반환 (UI 깨짐 방지)
+                    return { name: "알 수 없음 (오류)", imageUrl: null };
+                }
+            });
+
+            const evolvedPokemonDetails = await Promise.all(evolutionPromises);
+
+            $evolutionDisplay.innerHTML = ''; // "로딩 중..." 메시지 지우기
+
+            const evolutionTitle = document.createElement('div');
+            evolutionTitle.textContent = "다음 진화 단계:";
+            evolutionTitle.style.fontWeight = 'bold';
+            evolutionTitle.style.marginBottom = '10px';
+            $evolutionDisplay.appendChild(evolutionTitle);
+
+            // 각 진화 포켓몬 정보를 화면에 추가
+            evolvedPokemonDetails.forEach(detail => {
+                const evoDiv = document.createElement('div');
+                evoDiv.classList.add('evolution-item');
+                evoDiv.style.display = 'flex';
+                evoDiv.style.alignItems = 'center';
+                evoDiv.style.marginBottom = '5px';
+
+                if (detail.imageUrl) {
+                    const evoImg = document.createElement('img');
+                    evoImg.src = detail.imageUrl;
+                    evoImg.alt = detail.name;
+                    evoImg.style.width = '50px';
+                    evoImg.style.height = '50px';
+                    evoImg.style.marginRight = '10px';
+                    evoDiv.appendChild(evoImg);
+                }
+                const evoNameSpan = document.createElement('span');
+                evoNameSpan.textContent = detail.name;
+                evoDiv.appendChild(evoNameSpan);
+
+                $evolutionDisplay.appendChild(evoDiv);
+            });
+
+        } else {
+            // 더 이상 진화하지 않는 경우
+            $evolutionDisplay.textContent = '더 이상 진화하지 않습니다.';
+        }
+
+    } catch (error) {
+        console.error("진화 정보를 가져오다가 큰 오류가 발생했어요:", error);
+        $evolutionDisplay.textContent = `진화 정보 로딩 중 오류 발생: ${error.message}`;
+    }
+}
+
+//             if (nextEvolutionSpeciesUrls.length > 0){
+//                 const evolutionPromises = nextEvolutionSpeciesUrls.map(async (speciesUrl) => {
+
+//                     try {
+//                         const result = await fetch(speciesUrl);
+//                         if(!result.ok) throw new Error(`진화 중 데이터 로딩 실패!`);
+//                         const evoSpeciesData = await result.json();
+
+//                         const koreanNameEntry = evoSpeciesData.names.find(name => name.language.name === 'ko');
+//                         const evoName = koreanNameEntry ? koreanNameEntry.name : evoSpeciesData.name.toUpperCase();
+
+//                         const evoId = speciesUrl.split('/').filter(Boolean).pop();
+//                         const pokeRes = await fetch(`${apiPocketmon}${evoId}/`);
+//                         if (!pokeRes.ok) throw new Error(`다음 진화 포켓몬 데이터 로딩 실패!`);
+//                         const evoPokemonData = await pokeRes.json();
+//                         const evoImageUrl = evoPokemonData.sprites ? evoPokemonData.sprites.front_default : null;
+
+//                         return { name: evoName, imageUrl: evoImageUrl };
+//                     } catch(error) {
+//                         console.error("다음 진화 포켓몬 가져오기 오류");
+//                         return;
+//                     }
+//                 });
+//                 const evolvedPokemonDetails = await Promise.all(evolutionPromises);
+
+//                 $evolutionDisplay.innerHTML = '';
+
+//                 const evolutionTitle = document.createElement('div');
+//                 evolutionTitle.textContent = "다음 진화 단계:";
+//                 evolutionTitle.style.fontWeight = 'bold';
+//                 evolutionTitle.style.marginBottom = '10px';
+//                 $evolutionDisplay.appendChild(evolutionTitle);
+
+//                 evolvedPokemonDetails.forEach(detail => {
+//                 const evoDiv = document.createElement('div');
+//                 evoDiv.classList.add('evolution-item');
+//                 evoDiv.style.display = 'flex';
+//                 evoDiv.style.alignItems = 'center';
+//                 evoDiv.style.marginBottom = '5px';
+
+//                 if (detail.imageUrl) {
+//                     const evoImg = document.createElement('img');
+//                     evoImg.src = detail.imageUrl;
+//                     evoImg.alt = detail.name;
+//                     evoImg.style.width = '50px';
+//                     evoImg.style.height = '50px';
+//                     evoImg.style.marginRight = '10px';
+//                     evoDiv.appendChild(evoImg);
+//                 }
+//                 const evoNameSpan = document.createElement('span');
+//                 evoNameSpan.textContent = detail.name;
+//                 evoDiv.appendChild(evoNameSpan);
+
+//                 $evolutionDisplay.appendChild(evoDiv);
+//             });
+
+//             if (evolvedPokemonDetails.length === 0) {
+//                 $evolutionDisplay.textContent = '더 이상 진화하지 않습니다.';
+//             }
+
+//         } else {
+//             $evolutionDisplay.textContent = '더 이상 진화하지 않습니다.';
+//         }
+
+//     } catch (error) {
+//         console.error("진화 정보를 가져오다가 큰 오류가 발생했어요:", error);
+//         $evolutionDisplay.textContent = `진화 정보 로딩 중 오류 발생: ${error.message}`;
+//     }
+// };
