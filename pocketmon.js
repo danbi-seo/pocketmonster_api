@@ -3,8 +3,11 @@ const apiPocketmonSpecies = 'https://pokeapi.co/api/v2/pokemon-species/';
 
 const startPage = document.querySelector('.first-display');
 const secondPage = document.querySelector('.second-display');
+
 const startButton = document.querySelector('.start-btn');
+const evolutionButton = document.querySelector('.evolution');
 const rerollButton = document.querySelector('.reroll');
+
 const $monsterName = document.querySelector('.monster-name');
 const $monsterImg = document.querySelector('.monster-img');
 const $monsterNumber = document.querySelector('.monster-number');
@@ -13,6 +16,7 @@ const $monsterStats = document.querySelector('.monster-stats');
 const $monsterHeight = document.querySelector('.monster-height');   
 const $monsterWeight = document.querySelector('.monster-weight');   
 const $monsterText = document.querySelector('.monster-text');
+const $monsterSkill = document.querySelector('.monster-skill');
 
 
 const typeTranslations = {
@@ -46,126 +50,198 @@ const statTranslations = {
 };
 
 
+// JSON 데이터 가져오기 함수
+async function fetchJson(url) {
+    const response = await fetch(url);
+    return response.json();
+}
+
+// 한글로 가져오기
+function getKoreanName(namesArray, fallbackName) {
+    const koreanEntry = namesArray?.find(name => name.language.name === 'ko');
+    return koreanEntry ? koreanEntry.name : fallbackName.replace(/-/g, ' ').toUpperCase();
+}
+
+// 줄바꿈 처리
+const lineChange = (text, charsPerLine) => {
+    let result = '';
+    let currentLineLength = 0;
+    for (let i = 0; i < text.length; i++) {
+        result += text[i];
+        currentLineLength++;
+        (currentLineLength >= charsPerLine && i < text.length - 1) && (result += '<br>', currentLineLength = 0);
+    }
+    return result;
+};
+
+
+// 포켓몬 기본 정보
+function updatePokemonBasicInfo(pokemonData, speciesData) {
+    const displayPokemonName = getKoreanName(speciesData.names, pokemonData.name);
+    const imageUrl = pokemonData.sprites?.front_default;
+
+    $monsterNumber.textContent = `#${String(pokemonData.id).padStart(3, '0')}`;
+    $monsterName.textContent = displayPokemonName;
+
+    $monsterImg.src = imageUrl || '';
+    $monsterImg.alt = displayPokemonName || '이미지 없음';
+
+    $monsterHeight.textContent = `키 : ${pokemonData.height / 10}m`;
+    $monsterWeight.textContent = `몸무게 : ${pokemonData.weight / 10}kg`;
+
+    $monsterType.textContent = pokemonData.types?.length > 0
+        ? pokemonData.types.map(typeInfo => typeTranslations[typeInfo.type.name] || typeInfo.type.name.toUpperCase()).join(', ')
+        : '타입 정보 없음';
+
+    const koreanFlavorText = speciesData.flavor_text_entries?.find(entry => entry.language.name === 'ko')?.flavor_text;
+    $monsterText.innerHTML = koreanFlavorText
+        ? lineChange(koreanFlavorText.replace(/[\n\f]/g, ' '), 25)
+        : '도감 설명 없음.';
+}
+
+// 포켓몬 스탯
+function updatePokemonStats(pokemonData) {
+    $monsterStats.innerHTML = pokemonData.stats?.length > 0
+        ? pokemonData.stats.map(statInfo => {
+            const translatedStatName = statTranslations[statInfo.stat.name] || statInfo.stat.name.toUpperCase();
+            return `<div>${translatedStatName} : ${statInfo.base_stat}</div>`;
+        }).join('')
+        : '<p>스탯 정보 없음</p>';
+}
+
+// 포켓몬 특성
+async function updatePokemonSkills(pokemonData) {
+    $monsterSkill.innerHTML = '';
+
+    let abilitiesList = [];
+    for (const abilityInfo of (pokemonData.abilities || [])) {
+        const abilityData = await fetchJson(abilityInfo.ability.url);
+        const abilityName = getKoreanName(abilityData.names, abilityInfo.ability.name);
+        abilitiesList.push(abilityName);
+    }
+    const joinedAbilities = abilitiesList.join(' / ');
+    $monsterSkill.textContent = joinedAbilities ? `특성 : ${joinedAbilities}` : `특성 없음`;
+}
+
+
+// 랜덤 포켓몬 정보
 async function randomPocketmon() {
     const randomId = Math.floor(Math.random() * 1000) + 1;
-    const pokemonApiUrl = `${apiPocketmon}${randomId}/`; 
+    const pokemonApiUrl = `${apiPocketmon}${randomId}/`;
     const speciesApiUrl = `${apiPocketmonSpecies}${randomId}/`;
 
     try {
-        // 랜덤한 id를 가지고 포켓몬 데이터를 가져오기
-        const pokemonResponse = await fetch(pokemonApiUrl);
-        if (!pokemonResponse.ok) {
-            throw new Error(`포켓몬 기본 데이터 로딩 실패! (상태 코드: ${pokemonResponse.status}, ID: ${randomId})`);
-        }
-        const pokemonData = await pokemonResponse.json();
+        const pokemonData = await fetchJson(pokemonApiUrl);
+        const speciesData = await fetchJson(speciesApiUrl);
 
-
-        // 포켓몬 종류 데이터 가져오기
-        const speciesResponse = await fetch(speciesApiUrl);
-        if (!speciesResponse.ok) {
-            throw new Error(`포켓몬 종 데이터 로딩 실패! (상태 코드: ${speciesResponse.status}, ID: ${randomId})`);
-        }
-        const speciesData = await speciesResponse.json();
-
-
-        // --- 이제 가져온 정보로 화면을 업데이트! ---
-
-        // 1.포켓몬 번호
-        if ($monsterNumber) { 
-            $monsterNumber.textContent = `#${String(pokemonData.id).padStart(3, '0')}`;
-        }
-
-        // 2. 포켓몬 이름 
-        let displayPokemonName = ''; 
-        const koreanNameEntry = speciesData.names ? speciesData.names.find(name => name.language.name === 'ko') : null;
-        if (koreanNameEntry && koreanNameEntry.name) {
-            displayPokemonName = koreanNameEntry.name;
-        } else {
-            displayPokemonName = pokemonData.name.toUpperCase();
-        }
-        
-        if ($monsterName) { 
-            $monsterName.textContent = displayPokemonName; 
-        }
-
-        // 3. 포켓몬 이미지 
-        const imageUrl = pokemonData.sprites ? pokemonData.sprites.front_default : null;
-        
-        if ($monsterImg) { 
-            if (imageUrl) { 
-                $monsterImg.src = imageUrl;
-                $monsterImg.alt = displayPokemonName; 
-            } else {
-                console.warn(`[ID ${randomId}] ${displayPokemonName}의 기본 이미지를 찾을 수 없습니다.`);
-                $monsterImg.src = '';
-                $monsterImg.alt = '이미지 없음';
-            }
-        }
-
-        // 4. 포켓몬 키 
-        if($monsterHeight) {
-            const heightInMeters = pokemonData.height / 10;
-            $monsterHeight.textContent = `키 : ${heightInMeters}m`;
-        }
-
-        // 5. 포켓몬 몸무게
-        if ($monsterWeight) {
-            const weightInKgs = pokemonData.weight / 10;
-            $monsterWeight.textContent = `몸무게 : ${weightInKgs}kg`;
-        }
-
-
-        // 6. 포켓몬 타입 
-        if ($monsterType) { 
-            if (pokemonData.types && pokemonData.types.length > 0) {
-                const typesText = pokemonData.types.map(typeInfo => {
-                    const englishTypeName = typeInfo.type.name;
-                    return typeTranslations[englishTypeName] || englishTypeName.toUpperCase();
-                }).join(', '); 
-                $monsterType.textContent = typesText;
-            } else {
-                $monsterType.textContent = '타입 정보 없음';
-            }
-        }
-
-        // 7. 포켓몬 스탯 
-        if ($monsterStats) { 
-            $monsterStats.innerHTML = ''; 
-            if (pokemonData.stats && pokemonData.stats.length > 0) {
-                // 배열로 순회하면서 스탯을 p태그에 추가함 
-                pokemonData.stats.forEach(statInfo => {
-                    const statP = document.createElement('div');
-                    statP.classList.add('stat-item');
-
-                    const englishStatName = statInfo.stat.name;
-                    const translatedStatName = statTranslations[englishStatName] || englishStatName.toUpperCase();
-                    
-                    statP.textContent = `${translatedStatName} : ${statInfo.base_stat}`;
-                    $monsterStats.appendChild(statP); 
-                });
-            } else {
-                $monsterStats.innerHTML = '<p>스탯 정보 없음</p>';
-            }
-        }
-
-        // 8. 포켓몬 설명
-        if ($monsterText) {
-            let flavorText = '도감 설명 없음.';
-            const koreanFlavorText = speciesData.flavor_text_entries ?
-                speciesData.flavor_text_entries.find(entry => entry.language.name === 'ko') : null;
-
-            if (koreanFlavorText && koreanFlavorText.flavor_text) {
-                flavorText = koreanFlavorText.flavor_text.replace(/[\n\f]/g, ' ');
-                flavorText = lineChange(flavorText, 25);
-            }
-            $monsterText.innerHTML = flavorText;
-        }
+        updatePokemonBasicInfo(pokemonData, speciesData);
+        updatePokemonStats(pokemonData);
+        await updatePokemonSkills(pokemonData); 
     } catch (error) {
-        console.error("포켓몬 정보를 가져오다가 큰 오류가 발생했어요:", error);
+        console.error("포켓몬 정보 오류", error);
     }
 }
 
 
+// 진화 체인 안에서 현재 포켓몬의 다음 진화 단계 URL 찾기
+function findDirectNextEvolutionSpeciesUrls(chainNode, currentSpeciesName) {
+    let nextEvolutionUrls = [];
+    let foundCurrent = false;
+    
+    const traverseAndCollect = (node) => {
+        // if (!node) return;
+
+        if (node.species.name === currentSpeciesName) {
+            node.evolves_to?.forEach(nextEvo => {
+                nextEvolutionUrls.push(nextEvo.species.url);
+        })
+        if (node.evolves_to) {
+            for (const nextEvoChild of node.evolves_to) {
+                if (findNodeAndDirectEvolutions(nextEvoChild)) {
+                    return true; // 자식 브랜치에서 찾았다면 더 이상 탐색하지 않음
+                }
+            }
+        }
+        return false; // 이 브랜치에서 찾지 못함
+    };
+    }
+    //     if (foundCurrent) {
+    //         node.evolves_to?.forEach(nextEvo => {
+    //             nextEvolutionUrls.push(nextEvo.species.url);
+    //             traverseAndCollect(nextEvo); // 다음 진화의 진화도 있는지 계속 탐색
+    //         });
+    //     } else {
+    //         node.evolves_to?.forEach(nextEvo => traverseAndCollect(nextEvo));
+    //     }
+    // };
+    traverseAndCollect(chainNode);
+    return nextEvolutionUrls;
+    // findNodeAndDirectEvolutions(chainNode);
+    // return directNextEvoUrls;
+}
+
+// 다음 진화 단계
+async function getNextEvolutionDetails(nextEvolutionSpeciesUrls) {
+    let evolvedPokemonDetails = [];
+    for (const speciesUrl of nextEvolutionSpeciesUrls) {
+        const evoSpeciesData = await fetchJson(speciesUrl);
+        const evoId = speciesUrl.split('/').filter(Boolean).pop();
+        const evoPokemonData = await fetchJson(`${apiPocketmon}${evoId}/`);
+        const evoName = getKoreanName(evoSpeciesData.names, evoPokemonData.name);
+        const evoImageUrl = evoPokemonData.sprites?.front_default;
+        evolvedPokemonDetails.push({ name: evoName, imageUrl: evoImageUrl });
+    }
+    return evolvedPokemonDetails;
+}
+
+function renderEvolutionUI(evolvedPokemonDetails) {
+    const $evolutionDisplay = $monsterSkill;
+    $evolutionDisplay.innerHTML = ''; 
+
+    evolvedPokemonDetails.forEach(detail => {
+        const evoDiv = document.createElement('div');
+        detail.imageUrl && (() => {
+            const evoImg = document.createElement('img');
+            evoImg.src = detail.imageUrl;
+            evoImg.alt = detail.name;
+            evoDiv.appendChild(evoImg);
+        })();
+        const evoNameSpan = document.createElement('span');
+        evoNameSpan.textContent = detail.name;
+        evoDiv.appendChild(evoNameSpan);
+        $evolutionDisplay.appendChild(evoDiv);
+    });
+}
+
+// 포켓몬 진화 정보를 표시
+async function displayEvolutions(pokemonId) {
+    const $evolutionDisplay = $monsterSkill;
+    $evolutionDisplay.innerHTML = '로딩 중...';
+
+    try {
+        const speciesData = await fetchJson(`${apiPocketmonSpecies}${pokemonId}/`);
+        const evolutionChainUrl = speciesData.evolution_chain?.url;
+        // 진화 체인 데이터 가져오기 (URL이 없으면 null)
+        const evolutionChainData = evolutionChainUrl && await fetchJson(evolutionChainUrl);
+        // 다음 진화 URL 찾기 (진화 체인 데이터가 없으면 빈 배열)
+        const nextEvolutionSpeciesUrls = evolutionChainData && findDirectNextEvolutionSpeciesUrls(
+            evolutionChainData.chain, speciesData.name) || [];
+
+
+        if (nextEvolutionSpeciesUrls.length > 0) {
+            const firstNextEvolutionUrl = nextEvolutionSpeciesUrls[0];
+            const firstEvoId = firstNextEvolutionUrl.split('/').filter(Boolean).pop();
+            $evolutionDisplay.textContent = '진화 완료!'; // $monsterSkill 영역에 메시지 표시
+            return parseInt(firstEvoId, 10); // 다음 진화체의 ID 반환
+        } else {
+            $evolutionDisplay.textContent = '더 이상 진화하지 않습니다.'; // $monsterSkill 영역에 메시지 표시
+            return null; // 진화체가 없음을 알림
+        }
+
+    } catch (error) {
+        console.error("진화 정보 오류", error);
+    }
+}
 
 
 // 스타트 버튼 이벤트
@@ -184,21 +260,15 @@ if (rerollButton) {
     })
 }
 
-// 줄바꿈
-const lineChange = (text, charsPerLine) => {
-    let result = '';
-    let currentLineLength = 0;
+// 진화하기 버튼 이벤트
+evolutionButton.addEventListener('click', async () => {
+    const pokemonIdText = $monsterNumber.textContent.replace('#', '');
+    const pokemonId = parseInt(pokemonIdText, 10);
+    const nextEvoId = await displayEvolutions(pokemonId);
 
-    for (let i = 0; i < text.length; i++) {
-        result += text[i];
-        currentLineLength++;
-
-        if (currentLineLength >= charsPerLine) {
-            if (i < text.length - 1) { 
-                result += '<br>';
-                currentLineLength = 0; 
-            }
-        }
+    if (nextEvoId) {
+        await randomPocketmon(nextEvoId);
     }
-    return result; 
-};
+    // nextEvoId가 truthy일 때만 randomPocketmon 호출.
+    // nextEvoId && await randomPocketmon(nextEvoId);
+});
